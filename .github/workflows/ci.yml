@@ -146,6 +146,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: AnkiBridge.xcframework
-          path: AnkiBridge.xcframework
+          path: out/AnkiBridge.xcframework
           if-no-files-found: warn
           retention-days: 14
