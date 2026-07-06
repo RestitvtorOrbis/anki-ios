@@ -1,0 +1,15 @@
+[package]
+name = "gen-service-index"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anki_proto_gen = { path = "../../../anki/rslib/proto_gen" }
+inflections = "1.1.1"
+prost-reflect = "0.14.7"
+
+[build-dependencies]
+# Building anki_proto runs its build script, which writes the descriptor
+# pool to the shared location read by our build.rs.
+anki_proto = { path = "../../../anki/rslib/proto" }
+anki_proto_gen = { path = "../../../anki/rslib/proto_gen" }
