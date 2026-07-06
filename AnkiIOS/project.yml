@@ -27,6 +27,12 @@ targets:
         SWIFT_OBJC_BRIDGING_HEADER: ../bridge/include/anki_bridge.h
         # Rust staticlibs need these system libs on iOS
         OTHER_LDFLAGS: "-lc++ -framework Security -framework SystemConfiguration"
+        # Let Xcode generate Info.plist automatically (required for archive/device builds)
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.ankiios
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
   AnkiIOSTests:
     type: bundle.unit-test
     platform: iOS
