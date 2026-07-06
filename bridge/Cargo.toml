@@ -1,0 +1,19 @@
+[package]
+name = "anki-ios-bridge"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "anki_ios_bridge"
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+anki = { path = "../../anki/rslib" }
+prost = "0.13"
+# rslib assumes tokio/io-util is unified in by other members of the desktop
+# workspace; enable it explicitly here since our workspace is separate.
+tokio = { version = "1", features = ["io-util"] }
+
+[dev-dependencies]
+anki_proto = { path = "../../anki/rslib/proto" }
+tempfile = "3"

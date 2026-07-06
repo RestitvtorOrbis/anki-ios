@@ -1,4 +1,6 @@
-Resources/web/
+AnkiIOS/Resources/web/
+AnkiIOS/*.xcodeproj/
+out/
 *.xcframework
 target/
 .DS_Store

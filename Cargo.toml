@@ -1,0 +1,3 @@
+[workspace]
+members = ["bridge", "tools/gen-service-index"]
+resolver = "2"
