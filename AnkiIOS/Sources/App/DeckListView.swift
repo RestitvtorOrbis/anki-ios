@@ -15,19 +15,38 @@ struct DeckListView: View {
                         description: Text(error))
                 } else {
                     List(decks) { deck in
-                        HStack {
-                            Text(deck.name)
-                                .padding(.leading, CGFloat(deck.level - 1) * 16)
-                            Spacer()
-                            Text("\(deck.newCount)").foregroundStyle(.blue)
-                            Text("\(deck.reviewCount)").foregroundStyle(.green)
+                        NavigationLink {
+                            if let backend = appState.backend,
+                               let mediaFolder = appState.mediaFolder {
+                                ReviewerView(
+                                    backend: backend,
+                                    deckId: deck.id,
+                                    mediaFolder: mediaFolder)
+                                    .navigationTitle(deck.name)
+                            }
+                        } label: {
+                            HStack {
+                                Text(deck.name)
+                                    .padding(.leading, CGFloat(deck.level - 1) * 16)
+                                Spacer()
+                                Text("\(deck.newCount)").foregroundStyle(.blue)
+                                Text("\(deck.reviewCount)").foregroundStyle(.green)
+                            }
                         }
+                        .disabled(deck.newCount == 0 && deck.reviewCount == 0)
                     }
                 }
             }
             .navigationTitle("Decks")
             .task { reload() }
             .refreshable { reload() }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink(destination: SyncView().environmentObject(appState)) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                    }
+                }
+            }
         }
     }
 

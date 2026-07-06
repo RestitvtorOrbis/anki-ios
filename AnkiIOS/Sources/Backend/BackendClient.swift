@@ -46,6 +46,7 @@ final class BackendClient {
     }
 
     /// Run an RPC with a request and a typed response.
+    @discardableResult
     func run<Request: Message, Response: Message>(
         service: UInt32, method: UInt32, request: Request
     ) throws -> Response {
