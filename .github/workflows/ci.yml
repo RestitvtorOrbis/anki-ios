@@ -26,8 +26,11 @@ jobs:
           repository: ankitects/anki
           ref: main
           path: anki
-          # rslib only; skip heavy submodules (ftl, ts build deps)
           submodules: false
+
+      - name: Init FTL submodules (required by anki_i18n build script)
+        working-directory: anki
+        run: git submodule update --init --depth 1 ftl/core-repo ftl/qt-repo
 
       - name: Symlink anki as sibling (matches bridge/Cargo.toml path = "../../anki/rslib")
         run: ln -s "$GITHUB_WORKSPACE/anki" "$GITHUB_WORKSPACE/../anki"
@@ -69,6 +72,10 @@ jobs:
           ref: main
           path: anki
           submodules: false
+
+      - name: Init FTL submodules (required by anki_i18n build script)
+        working-directory: anki
+        run: git submodule update --init --depth 1 ftl/core-repo ftl/qt-repo
 
       - name: Symlink anki as sibling (matches bridge/Cargo.toml path = "../../anki/rslib")
         run: ln -s "$GITHUB_WORKSPACE/anki" "$GITHUB_WORKSPACE/../anki"

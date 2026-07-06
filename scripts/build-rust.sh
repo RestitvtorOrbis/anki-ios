@@ -22,7 +22,7 @@ fi
 TARGETS=(aarch64-apple-ios aarch64-apple-ios-sim)
 for t in "${TARGETS[@]}"; do
     rustup target add "$t"
-    cargo build -p anki-ios-bridge --target "$t" "${CARGO_FLAGS[@]}"
+    cargo build -p anki-ios-bridge --target "$t" ${CARGO_FLAGS[@]+"${CARGO_FLAGS[@]}"}
 done
 
 OUT=out/AnkiBridge.xcframework
