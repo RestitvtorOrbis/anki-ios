@@ -1,0 +1,4 @@
+Resources/web/
+*.xcframework
+target/
+.DS_Store
