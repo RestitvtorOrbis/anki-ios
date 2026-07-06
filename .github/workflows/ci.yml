@@ -142,6 +142,32 @@ jobs:
             | xcpretty
         continue-on-error: true   # tests require Phase 2 Swift protos; remove once complete
 
+      - name: Build IPA for device (unsigned, for Sideloadly)
+        run: |
+          xcodebuild archive \
+            -project AnkiIOS/AnkiIOS.xcodeproj \
+            -scheme AnkiIOS \
+            -sdk iphoneos \
+            -archivePath "$RUNNER_TEMP/AnkiIOS.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            | xcpretty || true
+          # Package .app into a standard .ipa (zip with Payload/ folder)
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -r "$RUNNER_TEMP/AnkiIOS.xcarchive/Products/Applications/AnkiIOS.app" \
+                "$RUNNER_TEMP/Payload/"
+          cd "$RUNNER_TEMP"
+          zip -qr AnkiIOS.ipa Payload/
+
+      - name: Upload IPA as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnkiIOS.ipa
+          path: ${{ runner.temp }}/AnkiIOS.ipa
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Upload xcframework as artifact
         uses: actions/upload-artifact@v4
         with:
