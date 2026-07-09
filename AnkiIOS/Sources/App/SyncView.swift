@@ -57,10 +57,10 @@ struct SyncView: View {
 
     private var syncButton: some View {
         Button("Sync Now") {
-            vm.sync(backend: appState.backend)
+            vm.sync(backend: appState.backend, appState: appState)
         }
         .buttonStyle(.borderedProminent)
-        .disabled(vm.username.isEmpty || vm.password.isEmpty)
+        .disabled(vm.username.isEmpty || vm.password.isEmpty || appState.backendBusy)
         .frame(maxWidth: .infinity)
         .listRowBackground(Color.clear)
     }
@@ -83,12 +83,12 @@ final class SyncViewModel: ObservableObject {
 
     func reset() { phase = .idle }
 
-    func sync(backend: BackendClient?) {
+    func sync(backend: BackendClient?, appState: AppState) {
         guard let backend else {
             phase = .error("Backend not initialised")
             return
         }
-        Task { await _run(backend: backend) }
+        Task { await _run(backend: backend, appState: appState) }
     }
 
     func abort(backend: BackendClient?) {
@@ -105,11 +105,18 @@ final class SyncViewModel: ObservableObject {
 
     // MARK: - Private
 
-    private func _run(backend: BackendClient) async {
+    private func _run(backend: BackendClient, appState: AppState) async {
+        appState.backendBusy = true
+        defer { appState.backendBusy = false }
         do {
             phase = .syncing("Logging in…")
-            // 1. Login → get auth token
-            let auth: Anki_Sync_SyncAuth = try backend.run(
+            // 1. Login → get auth token. The FFI call blocks the calling
+            // thread, so `runAsync` hops off the main actor and only
+            // returns here to publish `phase`; otherwise the UI would
+            // freeze for the duration of the sync.
+            let username = username
+            let password = password
+            let auth: Anki_Sync_SyncAuth = try await backend.runAsync(
                 service: AnkiServiceIndex.SyncService.service,
                 method: AnkiServiceIndex.SyncService.syncLogin,
                 request: Anki_Sync_SyncLoginRequest.with {
@@ -119,7 +126,7 @@ final class SyncViewModel: ObservableObject {
 
             // 2. Check status
             phase = .syncing("Checking sync status…")
-            let status: Anki_Sync_SyncStatusResponse = try backend.run(
+            let status: Anki_Sync_SyncStatusResponse = try await backend.runAsync(
                 service: AnkiServiceIndex.SyncService.service,
                 method: AnkiServiceIndex.SyncService.syncStatus,
                 request: auth)
@@ -134,7 +141,7 @@ final class SyncViewModel: ObservableObject {
                 // if remote has none → upload, otherwise ask the user.
                 // For Phase 4 we default to download (safe, non-destructive path).
                 phase = .syncing("Full sync required — downloading…")
-                try backend.run(
+                try await backend.runAsync(
                     service: AnkiServiceIndex.SyncService.service,
                     method: AnkiServiceIndex.SyncService.fullUploadOrDownload,
                     request: Anki_Sync_FullUploadOrDownloadRequest.with {
@@ -150,7 +157,7 @@ final class SyncViewModel: ObservableObject {
 
             // 3. Normal sync
             phase = .syncing("Syncing collection…")
-            let result: Anki_Sync_SyncCollectionResponse = try backend.run(
+            let result: Anki_Sync_SyncCollectionResponse = try await backend.runAsync(
                 service: AnkiServiceIndex.SyncService.service,
                 method: AnkiServiceIndex.SyncService.syncCollection,
                 request: Anki_Sync_SyncCollectionRequest.with {
@@ -169,7 +176,7 @@ final class SyncViewModel: ObservableObject {
             // Status can be polled via MediaSyncStatus if needed in Phase 5.
 
         } catch {
-            phase = .error(String(describing: error))
+            phase = .error(error.ankiUserMessage)
         }
     }
 }

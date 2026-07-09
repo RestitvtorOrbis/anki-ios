@@ -1,9 +1,12 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct DeckListView: View {
     @EnvironmentObject private var appState: AppState
     @State private var decks: [DeckRow] = []
     @State private var error: String?
+    @StateObject private var importVM = ImportPackageViewModel()
+    @State private var isPickingFile = false
 
     var body: some View {
         NavigationStack {
@@ -42,13 +45,47 @@ struct DeckListView: View {
             .refreshable { reload() }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isPickingFile = true
+                    } label: {
+                        Image(systemName: "square.and.arrow.down")
+                    }
+                    .disabled(appState.backendBusy)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink(destination: SyncView().environmentObject(appState)) {
                         Image(systemName: "arrow.triangle.2.circlepath")
                     }
                 }
             }
+            .fileImporter(
+                isPresented: $isPickingFile,
+                allowedContentTypes: Self.importContentTypes
+            ) { result in
+                importVM.importPackage(from: result, backend: appState.backend, appState: appState) {
+                    reload()
+                }
+            }
+            .sheet(isPresented: Binding(
+                get: { importVM.isPresentingStatus },
+                set: { presented in if !presented { importVM.reset() } }
+            )) {
+                ImportStatusView(vm: importVM)
+            }
         }
     }
+
+    /// `.apkg` isn't a system UTI, so declare it by extension and always
+    /// keep `.data` alongside it as a fallback in case that resolution
+    /// fails on a given OS/toolchain, so the file is still selectable.
+    private static let importContentTypes: [UTType] = {
+        var types: [UTType] = []
+        if let apkgType = UTType(filenameExtension: "apkg") {
+            types.append(apkgType)
+        }
+        types.append(.data)
+        return types
+    }()
 
     private func reload() {
         guard let backend = appState.backend else { return }
@@ -61,7 +98,7 @@ struct DeckListView: View {
                 request: req)
             decks = flatten(tree)
         } catch {
-            self.error = String(describing: error)
+            self.error = error.ankiUserMessage
         }
     }
 

@@ -26,6 +26,11 @@ struct AnkiIOSApp: App {
 final class AppState: ObservableObject {
     @Published private(set) var backend: BackendClient?
     @Published var startupError: String?
+    /// True while a sync or import RPC is in flight. Both hold rslib's
+    /// collection mutex, so letting one start while the other is running
+    /// just makes the second one hang invisibly; views disable their
+    /// triggering buttons while this is true instead of queuing.
+    @Published var backendBusy: Bool = false
     /// URL of the collection.media folder — passed to ReviewerView for media serving.
     private(set) var mediaFolder: URL?
 

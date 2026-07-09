@@ -21,6 +21,33 @@ enum AnkiError: Error {
     case invalidResponse
 }
 
+extension AnkiError {
+    /// A human-readable message suitable for display in the UI.
+    ///
+    /// Mirrors how pylib/anki/_backend.py surfaces `BackendError.message` to
+    /// the user instead of the raw exception repr.
+    var userMessage: String {
+        switch self {
+        case .backend(let err):
+            return err.message.isEmpty ? String(describing: err) : err.message
+        case .backendInitFailed:
+            return "Failed to initialise the Anki backend."
+        case .backendClosed:
+            return "The Anki backend is not available."
+        case .invalidResponse:
+            return "Received an invalid response from the backend."
+        }
+    }
+}
+
+extension Error {
+    /// A human-readable message for any error, unwrapping `AnkiError` when
+    /// possible instead of dumping its raw description.
+    var ankiUserMessage: String {
+        (self as? AnkiError)?.userMessage ?? String(describing: self)
+    }
+}
+
 final class BackendClient {
     private var backend: OpaquePointer?
 
@@ -58,6 +85,31 @@ final class BackendClient {
     /// Run an RPC whose response is empty.
     func run<Request: Message>(service: UInt32, method: UInt32, request: Request) throws {
         _ = try runRaw(service: service, method: method, input: request.serializedData())
+    }
+
+    /// Run an RPC with a request and a typed response, off the main actor.
+    ///
+    /// The underlying FFI call blocks the calling thread, so this hops onto
+    /// a detached task and awaits its result — callers on `@MainActor` won't
+    /// block the UI for the duration of the call.
+    @discardableResult
+    func runAsync<Request: Message, Response: Message>(
+        service: UInt32, method: UInt32, request: Request
+    ) async throws -> Response {
+        try await Task.detached {
+            try self.run(service: service, method: method, request: request)
+        }.value
+    }
+
+    /// Run an RPC whose response is empty, off the main actor.
+    ///
+    /// The underlying FFI call blocks the calling thread, so this hops onto
+    /// a detached task and awaits its result — callers on `@MainActor` won't
+    /// block the UI for the duration of the call.
+    func runAsync<Request: Message>(service: UInt32, method: UInt32, request: Request) async throws {
+        try await Task.detached {
+            try self.run(service: service, method: method, request: request)
+        }.value
     }
 
     private func runRaw(service: UInt32, method: UInt32, input: Data) throws -> Data {
