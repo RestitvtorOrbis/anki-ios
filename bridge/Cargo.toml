@@ -8,7 +8,7 @@ name = "anki_ios_bridge"
 crate-type = ["staticlib", "rlib"]
 
 [dependencies]
-anki = { path = "../../anki/rslib" }
+anki = { path = "../../anki/rslib", features = ["rustls"] }
 prost = "0.13"
 # rslib assumes tokio/io-util is unified in by other members of the desktop
 # workspace; enable it explicitly here since our workspace is separate.
